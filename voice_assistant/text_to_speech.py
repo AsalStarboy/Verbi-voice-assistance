@@ -106,21 +106,36 @@ def text_to_speech(model: str, api_key:str, text:str, output_file_path:str, loca
 
         elif model == "piper":  # this is a local model
             try:
-                response = requests.post(
-                    f"{Config.PIPER_SERVER_URL}/synthesize/",
-                    json={"text": text},
-                    headers={"Content-Type": "application/json"}
+                import subprocess
+                import os
+                
+                # Use config settings
+                piper_executable = Config.PIPER_EXECUTABLE
+                model_path = Config.PIPER_MODEL_PATH
+                
+                # Check if model exists
+                if not os.path.exists(model_path):
+                    raise FileNotFoundError(f"Piper model not found at {model_path}")
+                
+                # Run piper command
+                command = [piper_executable, "-m", model_path, "-f", output_file_path]
+                
+                result = subprocess.run(
+                    command, 
+                    input=text, 
+                    text=True, 
+                    capture_output=True, 
+                    check=True
                 )
                 
-                if response.status_code == 200:
-                    with open(Config.PIPER_OUTPUT_FILE, "wb") as f:
-                        f.write(response.content)
-                    logging.info(f"Piper TTS output saved to {Config.PIPER_OUTPUT_FILE}")
-                else:
-                    logging.error(f"Piper TTS API error: {response.status_code} - {response.text}")
-
+                logging.info(f"Piper TTS output saved to {output_file_path}")
+                
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Piper TTS command failed: {e.stderr}")
+                raise
             except Exception as e:
-                logging.error(f"Piper TTS request failed: {e}")
+                logging.error(f"Piper TTS error: {e}")
+                raise
         
         elif model == 'local':
             with open(output_file_path, "wb") as f:

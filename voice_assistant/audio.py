@@ -19,9 +19,9 @@ def get_recognizer():
     """
     return sr.Recognizer()
 
-def record_audio(file_path, timeout=10, phrase_time_limit=None, retries=3, energy_threshold=2000, 
-                 pause_threshold=1, phrase_threshold=0.1, dynamic_energy_threshold=True, 
-                 calibration_duration=1):
+def record_audio(file_path, timeout=10, phrase_time_limit=None, retries=3, energy_threshold=1000, 
+                 pause_threshold=1.5, phrase_threshold=0.1, dynamic_energy_threshold=True, 
+                 calibration_duration=2):
     """
     Record audio from the microphone and save it as an MP3 file.
     
@@ -47,16 +47,23 @@ def record_audio(file_path, timeout=10, phrase_time_limit=None, retries=3, energ
             with sr.Microphone() as source:
                 logging.info("Calibrating for ambient noise...")
                 recognizer.adjust_for_ambient_noise(source, duration=calibration_duration)
-                logging.info("Recording started")
+                logging.info(f"Energy threshold after calibration: {recognizer.energy_threshold}")
+                logging.info("Recording started - Please speak now!")
                 # Listen for the first phrase and extract it into audio data
                 audio_data = recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
                 logging.info("Recording complete")
 
-                # Convert the recorded audio data to an MP3 file
+                # Save the recorded audio data as WAV file
                 wav_data = audio_data.get_wav_data()
-                audio_segment = pydub.AudioSegment.from_wav(BytesIO(wav_data))
-                mp3_data = audio_segment.export(file_path, format="mp3", bitrate="128k", parameters=["-ar", "22050", "-ac", "1"])
-                return
+                
+                try:
+                    with open(file_path, 'wb') as audio_file:
+                        audio_file.write(wav_data)
+                    logging.info(f"Audio saved successfully to {file_path}")
+                    return
+                except Exception as save_error:
+                    logging.error(f"Failed to save audio file: {save_error}")
+                    raise
         except sr.WaitTimeoutError:
             logging.warning(f"Listening timed out, retrying... ({attempt + 1}/{retries})")
         except Exception as e:

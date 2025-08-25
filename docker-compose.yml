@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  voice-assistant:
+    build: .
+    container_name: verbi-voice-assistant
+    volumes:
+      # Mount audio devices (Linux/macOS)
+      - /dev/snd:/dev/snd
+      # Mount models directory for persistence
+      - ./piper_models:/app/piper_models
+      # Mount for audio files
+      - ./audio_files:/app/audio_files
+    devices:
+      # Audio device access
+      - /dev/snd:/dev/snd
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PULSE_SERVER=unix:/tmp/pulse-socket
+    network_mode: host
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    
+  # Ollama service (separate container)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-server
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_ORIGINS=*
+    restart: unless-stopped
+    
+volumes:
+  ollama_data:

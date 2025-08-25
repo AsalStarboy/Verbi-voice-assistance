@@ -35,3 +35,7 @@ cartesia
 soundfile
 ollama
 pydub
+faster-whisper
+piper-tts
+pyaudio
+soundfile

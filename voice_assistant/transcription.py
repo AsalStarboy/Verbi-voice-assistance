@@ -10,6 +10,13 @@ from openai import OpenAI
 from groq import Groq
 from deepgram import DeepgramClient,PrerecordedOptions,FileSource
 
+try:
+    from faster_whisper import WhisperModel
+    FASTER_WHISPER_AVAILABLE = True
+except ImportError:
+    FASTER_WHISPER_AVAILABLE = False
+    logging.warning("faster-whisper not available. Install with: pip install faster-whisper")
+
 fast_url = "http://localhost:8000"
 checked_fastwhisperapi = False
 
@@ -31,7 +38,7 @@ def transcribe_audio(model, api_key, audio_file_path, local_model_path=None):
     Transcribe an audio file using the specified model.
     
     Args:
-        model (str): The model to use for transcription ('openai', 'groq', 'deepgram', 'fastwhisper', 'local').
+        model (str): The model to use for transcription ('openai', 'groq', 'deepgram', 'fastwhisperapi', 'faster-whisper', 'local').
         api_key (str): The API key for the transcription service.
         audio_file_path (str): The path to the audio file to transcribe.
         local_model_path (str): The path to the local model (if applicable).
@@ -48,6 +55,8 @@ def transcribe_audio(model, api_key, audio_file_path, local_model_path=None):
             return _transcribe_with_deepgram(api_key, audio_file_path)
         elif model == 'fastwhisperapi':
             return _transcribe_with_fastwhisperapi(audio_file_path)
+        elif model == 'faster-whisper':
+            return _transcribe_with_faster_whisper(audio_file_path, local_model_path)
         elif model == 'local':
             # Placeholder for local STT model transcription
             return "Transcribed text from local model"
@@ -113,3 +122,45 @@ def _transcribe_with_fastwhisperapi(audio_file_path):
     response = requests.post(endpoint, files=files, data=data, headers=headers)
     response_json = response.json()
     return response_json.get('text', 'No text found in the response.')
+
+
+def _transcribe_with_faster_whisper(audio_file_path, local_model_path=None):
+    """
+    Transcribe audio using faster-whisper locally.
+    
+    Args:
+        audio_file_path (str): Path to the audio file
+        local_model_path (str): Not used, kept for compatibility
+    
+    Returns:
+        str: Transcribed text
+    """
+    if not FASTER_WHISPER_AVAILABLE:
+        raise ValueError("faster-whisper not available. Install with: pip install faster-whisper")
+    
+    try:
+        from voice_assistant.config import Config
+        
+        # Initialize the model using config settings
+        model = WhisperModel(
+            Config.FASTER_WHISPER_MODEL_SIZE, 
+            device=Config.FASTER_WHISPER_DEVICE, 
+            compute_type=Config.FASTER_WHISPER_COMPUTE_TYPE
+        )
+        
+        # Transcribe the audio
+        segments, info = model.transcribe(audio_file_path, beam_size=5, language="en")
+        
+        # Combine all segments into a single text
+        transcribed_text = ""
+        for segment in segments:
+            transcribed_text += segment.text + " "
+        
+        logging.info(f"{Fore.GREEN}Detected language: {info.language} (probability: {info.language_probability:.2f}){Fore.RESET}")
+        logging.info(f"{Fore.CYAN}Using faster-whisper model: {Config.FASTER_WHISPER_MODEL_SIZE} on {Config.FASTER_WHISPER_DEVICE}{Fore.RESET}")
+        
+        return transcribed_text.strip()
+        
+    except Exception as e:
+        logging.error(f"{Fore.RED}faster-whisper transcription error: {e}{Fore.RESET}")
+        raise
