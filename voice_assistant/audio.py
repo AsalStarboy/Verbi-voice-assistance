@@ -21,21 +21,31 @@ def get_recognizer():
 
 def record_audio(file_path, timeout=10, phrase_time_limit=None, retries=3, energy_threshold=1000, 
                  pause_threshold=1.5, phrase_threshold=0.1, dynamic_energy_threshold=True, 
-                 calibration_duration=2):
+                 calibration_duration=2, wake_word_mode=False):
     """
-    Record audio from the microphone and save it as an MP3 file.
+    Record audio from the microphone and save it as a WAV file.
     
     Args:
     file_path (str): The path to save the recorded audio file.
     timeout (int): Maximum time to wait for a phrase to start (in seconds).
-    phrase_time_limit (int): Maximum time for the phrase to be recorded (in seconds).
-    retries (int): Number of retries if recording fails.
-    energy_threshold (int): Energy threshold for considering whether a given chunk of audio is speech or not.
-    pause_threshold (float): How much silence the recognizer interprets as the end of a phrase (in seconds).
-    phrase_threshold (float): Minimum length of a phrase to consider for recording (in seconds).
-    dynamic_energy_threshold (bool): Whether to enable dynamic energy threshold adjustment.
-    calibration_duration (float): Duration of the ambient noise calibration (in seconds).
+    phrase_time_limit (int): Maximum time for the recorded phrase (in seconds).
+    retries (int): Number of retry attempts if recording fails.
+    energy_threshold (int): Minimum audio energy to consider for recording.
+    pause_threshold (float): How much silence before ending recording (in seconds).
+    phrase_threshold (float): Minimum length of phrase to be recorded (in seconds).
+    dynamic_energy_threshold (bool): Automatically adjust energy threshold.
+    calibration_duration (int): Duration for ambient noise calibration (in seconds).
+    wake_word_mode (bool): If True, use optimized settings for wake word detection.
     """
+    
+    # Adjust settings for wake word mode
+    if wake_word_mode:
+        from voice_assistant.config import Config
+        energy_threshold = getattr(Config, 'WAKE_WORD_ENERGY_THRESHOLD', 800)
+        pause_threshold = getattr(Config, 'WAKE_WORD_PAUSE_THRESHOLD', 1.0)
+        timeout = getattr(Config, 'WAKE_WORD_TIMEOUT', 5)
+        phrase_time_limit = 3  # Shorter phrase limit for wake words
+        
     recognizer = get_recognizer()
     recognizer.energy_threshold = energy_threshold
     recognizer.pause_threshold = pause_threshold

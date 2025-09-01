@@ -26,6 +26,16 @@ class Config:
     FASTER_WHISPER_CPU_THREADS = 2  # Adjust based on your Pi model (Pi 4: 4, Pi 3: 4, Pi Zero: 1)
     FASTER_WHISPER_NUM_WORKERS = 1
     
+    # Wake Word Configuration for Pi
+    WAKE_WORD = "hi windy"
+    SLEEP_WORD = "bye windy"
+    WAKE_WORD_TIMEOUT = 5  # Seconds to listen for wake word
+    CONVERSATION_TIMEOUT = 30  # Seconds to wait for user input in conversation
+    
+    # Audio settings for wake word detection (Pi optimized)
+    WAKE_WORD_ENERGY_THRESHOLD = 600  # Lower threshold for Pi microphones
+    WAKE_WORD_PAUSE_THRESHOLD = 1.0   # Shorter pause for wake word detection
+    
     # Piper TTS settings
     PIPER_EXECUTABLE = os.path.expanduser("~/voice_assistant/models/piper/piper/piper")
     PIPER_MODEL_PATH = os.path.expanduser("~/voice_assistant/models/piper/en_US-lessac-medium.onnx")

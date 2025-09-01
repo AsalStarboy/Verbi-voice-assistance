@@ -46,6 +46,16 @@ class Config:
     FASTER_WHISPER_DEVICE = "cpu"       # Options: cpu, cuda (if GPU available)
     FASTER_WHISPER_COMPUTE_TYPE = "int8"  # Options: int8, int16, float16, float32
 
+    # Wake Word Configuration
+    WAKE_WORD = "hi windy"
+    SLEEP_WORD = "bye windy"
+    WAKE_WORD_TIMEOUT = 5  # Seconds to listen for wake word
+    CONVERSATION_TIMEOUT = 30  # Seconds to wait for user input in conversation
+    
+    # Audio settings for wake word detection
+    WAKE_WORD_ENERGY_THRESHOLD = 800  # Lower threshold for wake word sensitivity
+    WAKE_WORD_PAUSE_THRESHOLD = 1.0   # Shorter pause for wake word detection
+
     # API keys and paths
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
