@@ -57,3 +57,14 @@ class Config:
     # Pi-specific optimizations
     USE_GPU = False  # Pi doesn't have dedicated GPU for these models
     LOW_MEMORY_MODE = True  # Enable memory optimizations
+    
+    # Wake word configuration
+    WAKE_WORD = "hi windy"
+    SLEEP_WORD = "bye windy"
+    WAKE_WORD_ENERGY_THRESHOLD = 600  # Lower for Pi microphones
+    CONVERSATION_ENERGY_THRESHOLD = 800  # Adjusted for Pi
+    
+    # Response length configuration (optimized for voice assistant)
+    MAX_RESPONSE_WORDS = 25  # Slightly shorter for Pi performance (~15-20 seconds)
+    MAX_RESPONSE_TOKENS = 50  # Lower token limit for Pi
+    RESPONSE_TEMPERATURE = 0.6  # More consistent responses for Pi
