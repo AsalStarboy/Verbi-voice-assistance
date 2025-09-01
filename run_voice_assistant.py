@@ -9,7 +9,6 @@ from voice_assistant.response_generation import generate_response
 from voice_assistant.text_to_speech import text_to_speech
 from voice_assistant.utils import delete_file
 from voice_assistant.config import Config
-from voice_assistant.api_key_manager import get_transcription_api_key, get_response_api_key, get_tts_api_key
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -35,11 +34,8 @@ def main():
             # Record audio from the microphone and save it as 'test.wav'
             record_audio(Config.INPUT_AUDIO)
 
-            # Get the API key for transcription
-            transcription_api_key = get_transcription_api_key()
-            
-            # Transcribe the audio file
-            user_input = transcribe_audio(Config.TRANSCRIPTION_MODEL, transcription_api_key, Config.INPUT_AUDIO, Config.LOCAL_MODEL_PATH)
+            # Transcribe the audio file (no API key needed for local models)
+            user_input = transcribe_audio(Config.TRANSCRIPTION_MODEL, None, Config.INPUT_AUDIO, Config.LOCAL_MODEL_PATH)
 
             # Check if the transcription is empty and restart the recording if it is. This check will avoid empty requests if vad_filter is used in the fastwhisperapi.
             if not user_input:
@@ -53,12 +49,8 @@ def main():
 
             # Append the user's input to the chat history
             chat_history.append({"role": "user", "content": user_input})
-
-            # Get the API key for response generation
-            response_api_key = get_response_api_key()
-
-            # Generate a response
-            response_text = generate_response(Config.RESPONSE_MODEL, response_api_key, chat_history, Config.LOCAL_MODEL_PATH)
+            # Generate a response (no API key needed for local models)
+            response_text = generate_response(Config.RESPONSE_MODEL, None, chat_history, Config.LOCAL_MODEL_PATH)
             logging.info(Fore.CYAN + "Response: " + response_text + Fore.RESET)
 
             # Append the assistant's response to the chat history
@@ -70,11 +62,8 @@ def main():
             else:
                 output_file = 'output.wav'
 
-            # Get the API key for TTS
-            tts_api_key = get_tts_api_key()
-
-            # Convert the response text to speech and save it to the appropriate file
-            text_to_speech(Config.TTS_MODEL, tts_api_key, response_text, output_file, Config.LOCAL_MODEL_PATH)
+            # Convert the response text to speech (no API key needed for local models)
+            text_to_speech(Config.TTS_MODEL, None, response_text, output_file, Config.LOCAL_MODEL_PATH)
 
             # Play the generated speech audio
             if Config.TTS_MODEL=="cartesia":

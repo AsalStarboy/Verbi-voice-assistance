@@ -5,6 +5,8 @@ import pyaudio
 import elevenlabs
 import soundfile as sf
 import requests
+import subprocess
+import os
 
 from openai import OpenAI
 from deepgram import DeepgramClient, SpeakOptions
@@ -12,7 +14,6 @@ from elevenlabs.client import ElevenLabs
 from cartesia import Cartesia
 
 from voice_assistant.config import Config
-from voice_assistant.local_tts_generation import generate_audio_file_melotts
 
 def text_to_speech(model: str, api_key:str, text:str, output_file_path:str, local_model_path:str=None):
     """
@@ -101,14 +102,8 @@ def text_to_speech(model: str, api_key:str, text:str, output_file_path:str, loca
                 stream.close()
             p.terminate()
 
-        elif model == "melotts": # this is a local model
-            generate_audio_file_melotts(text=text, filename=output_file_path)
-
         elif model == "piper":  # this is a local model
             try:
-                import subprocess
-                import os
-                
                 # Use config settings
                 piper_executable = Config.PIPER_EXECUTABLE
                 model_path = Config.PIPER_MODEL_PATH
