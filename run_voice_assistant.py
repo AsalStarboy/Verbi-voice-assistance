@@ -17,8 +17,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Initialize colorama
 init(autoreset=True)
 
-import threading
-
 # Wake word constants
 WAKE_WORD = "hi windy"
 SLEEP_WORD = "bye windy"
@@ -100,8 +98,8 @@ def wait_for_wake_word():
                 if detect_wake_word(wake_text):
                     logging.info(Fore.GREEN + "🎉 Wake word detected! Activating voice assistant..." + Fore.RESET)
                     
-                    # Play wake up greeting
-                    greeting = "Hi there! I'm Windy. How can I help you today?"
+                    # Play fast wake up greeting
+                    greeting = "Hello! How can I help?"
                     text_to_speech(Config.TTS_MODEL, None, greeting, "wake_greeting.wav", Config.LOCAL_MODEL_PATH)
                     play_audio("wake_greeting.wav")
                     delete_file("wake_greeting.wav")
@@ -176,8 +174,8 @@ def active_conversation():
             if detect_sleep_word(user_input):
                 logging.info(Fore.YELLOW + "😴 Sleep word detected! Going to sleep mode..." + Fore.RESET)
                 
-                # Say goodbye
-                goodbye_message = "Goodbye! Say 'Hi Windy' when you need me again."
+                # Say fast goodbye
+                goodbye_message = "Goodbye!"
                 text_to_speech(Config.TTS_MODEL, None, goodbye_message, "goodbye.wav", Config.LOCAL_MODEL_PATH)
                 play_audio("goodbye.wav")
                 delete_file("goodbye.wav")

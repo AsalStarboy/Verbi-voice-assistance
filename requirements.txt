@@ -25,10 +25,7 @@ groq
 python-dotenv
 colorama
 requests
-keyboard
 elevenlabs
-fastapi
-uvicorn
 numpy 
 sounddevice 
 cartesia

@@ -3,11 +3,25 @@
 import logging
 import re
 
-from openai import OpenAI
-from groq import Groq
+# Only import what we need for Ollama
 import ollama
 
 from voice_assistant.config import Config
+
+# Optional imports for external APIs - only if available
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    logging.warning("OpenAI not available - install with: pip install openai")
+
+try:
+    from groq import Groq
+    GROQ_AVAILABLE = True
+except ImportError:
+    GROQ_AVAILABLE = False
+    logging.warning("Groq not available - install with: pip install groq")
 
 
 def generate_response(model:str, api_key:str, chat_history:list, local_model_path:str=None):
@@ -25,9 +39,17 @@ def generate_response(model:str, api_key:str, chat_history:list, local_model_pat
     """
     try:
         if model == 'openai':
-            response = _generate_openai_response(api_key, chat_history)
+            if not OPENAI_AVAILABLE:
+                logging.error("OpenAI package not available. Falling back to Ollama.")
+                response = _generate_ollama_response(chat_history)
+            else:
+                response = _generate_openai_response(api_key, chat_history)
         elif model == 'groq':
-            response = _generate_groq_response(api_key, chat_history)
+            if not GROQ_AVAILABLE:
+                logging.error("Groq package not available. Falling back to Ollama.")
+                response = _generate_ollama_response(chat_history)
+            else:
+                response = _generate_groq_response(api_key, chat_history)
         elif model == 'ollama':
             response = _generate_ollama_response(chat_history)
         elif model == 'local':
@@ -44,6 +66,8 @@ def generate_response(model:str, api_key:str, chat_history:list, local_model_pat
         return "I'm having trouble processing that right now."
 
 def _generate_openai_response(api_key, chat_history):
+    if not OPENAI_AVAILABLE:
+        raise ValueError("OpenAI package not installed. Use: pip install openai")
     client = OpenAI(api_key=api_key)
     response = client.chat.completions.create(
         model=Config.OPENAI_LLM,
@@ -53,6 +77,8 @@ def _generate_openai_response(api_key, chat_history):
 
 
 def _generate_groq_response(api_key, chat_history):
+    if not GROQ_AVAILABLE:
+        raise ValueError("Groq package not installed. Use: pip install groq")
     client = Groq(api_key=api_key)
     response = client.chat.completions.create(
         model=Config.GROQ_LLM,
@@ -84,8 +110,11 @@ Keep it SHORT and NATURAL for voice interaction."""
         messages=messages_with_system,
         options={
             "temperature": Config.RESPONSE_TEMPERATURE,
-            "top_p": 0.9,
-            "max_tokens": Config.MAX_RESPONSE_TOKENS,  # Limit token count for shorter responses
+            "top_p": 0.7,  # Lower for faster, more focused responses
+            "top_k": 20,   # Reduce choices for faster generation
+            "num_predict": Config.MAX_RESPONSE_TOKENS,  # Limit token count
+            "repeat_penalty": 1.1,  # Avoid repetition
+            "num_ctx": 1024,  # Smaller context window for speed
         }
     )
     return response['message']['content']

@@ -94,7 +94,7 @@ Edit config.py to select the models you want to use:
 ```shell
     class Config:
         # Model selection
-        TRANSCRIPTION_MODEL = 'groq'  # Options: 'openai', 'groq', 'deepgram', 'fastwhisperapi' 'local'
+        TRANSCRIPTION_MODEL = 'groq'  # Options: 'openai', 'groq', 'deepgram', 'faster-whisper', 'local'
         RESPONSE_MODEL = 'groq'       # Options: 'openai', 'groq', 'ollama', 'local'
         TTS_MODEL = 'deepgram'        # Options: 'openai', 'deepgram', 'elevenlabs', 'local', 'melotts', 'piper'
 
@@ -117,41 +117,19 @@ If you are running LLM locally via [Ollama](https://ollama.com/), make sure the 
 ```shell
    python run_voice_assistant.py
 ```
-8. 🎤 **Install FastWhisperAPI**
+8. 🎤 **Local Transcription with Faster-Whisper**
 
-   _Optional step if you need a local transcription model_
+   _Recommended for local transcription without external dependencies_
 
-   ***Clone the repository***
-   ```shell
-      cd..
-      git clone https://github.com/3choff/FastWhisperAPI.git
-      cd FastWhisperAPI
-   ```
-   ***Install the required packages:***
-   ```shell
-      pip install -r requirements.txt
-   ```
-   ***Run the API***
-   ```shell
-      fastapi run main.py
-   ```
-   ***Alternative Setup and Run Methods***
+   Faster-Whisper is automatically included in the requirements and provides:
+   - Local speech-to-text transcription
+   - No Docker containers needed
+   - Better performance than FastWhisperAPI
+   - Multiple model sizes: tiny, base, small, medium, large-v3
 
-   The API can also run directly on a Docker container or in Google Colab.
+   Simply set `TRANSCRIPTION_MODEL = 'faster-whisper'` in your config.py
 
-   ***Docker:***
-
-   ***Build a Docker container:***
-   ```shell
-      docker build -t fastwhisperapi .
-   ```
-   ***Run the container***
-   ```shell
-      docker run -p 8000:8000 fastwhisperapi
-   ```
-   Refer to the repository documentation for the Google Colab method: https://github.com/3choff/FastWhisperAPI/blob/main/README.md
-
-8. 🎤 **Install Local TTS - MeloTTS**
+9. 🎤 **Install Local TTS - MeloTTS**
 
    _Optional step if you need a local Text to Speech model_
 

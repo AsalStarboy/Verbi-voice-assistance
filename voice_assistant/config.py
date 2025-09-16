@@ -11,7 +11,7 @@ class Config:
     Configuration class to hold the model selection and API keys.
     
     Attributes:
-        TRANSCRIPTION_MODEL (str): The model to use for transcription ('openai', 'groq', 'deepgram', 'fastwhisperapi', 'local').
+        TRANSCRIPTION_MODEL (str): The model to use for transcription ('openai', 'groq', 'deepgram', 'faster-whisper', 'local').
         RESPONSE_MODEL (str): The model to use for response generation ('openai', 'groq', 'local').
         TTS_MODEL (str): The model to use for text-to-speech ('openai', 'deepgram', 'elevenlabs', 'local').
         OPENAI_API_KEY (str): API key for OpenAI services.
@@ -20,41 +20,37 @@ class Config:
         ELEVENLABS_API_KEY (str): API key for ElevenLabs services.
         LOCAL_MODEL_PATH (str): Path to the local model.
     """
-    # Model selection
-    TRANSCRIPTION_MODEL = 'faster-whisper'  # possible values: openai, groq, deepgram, fastwhisperapi
-    RESPONSE_MODEL = 'ollama'  # possible values: openai, groq, ollama
-    TTS_MODEL = 'piper'  # possible values: openai, deepgram, elevenlabs, melotts, cartesia, piper
+    # Model selection - CONFIGURED FOR RASPBERRY PI WITH OLLAMA ONLY
+    TRANSCRIPTION_MODEL = 'faster-whisper'  # Local transcription
+    RESPONSE_MODEL = 'ollama'  # Local LLM
+    TTS_MODEL = 'piper'  # Local text-to-speech
 
-    # Piper Server configuration (not needed for local Piper)
-    PIPER_SERVER_URL = os.getenv("PIPER_SERVER_URL")  # Optional for server mode
+    # Piper configuration for Raspberry Pi  
     PIPER_OUTPUT_FILE = "output.wav"
-    
-    # Local Piper configuration
-    PIPER_MODEL_PATH = "piper_models/en_US-lessac-medium.onnx"
-    PIPER_EXECUTABLE = "C:/Users/ADMIN/Documents/Vestas_Helmet/.venv/Scripts/piper.exe"
+    PIPER_MODEL_PATH = "/home/pi/.local/share/piper-voices/en/en_US/lessac/medium/en_US-lessac-medium.onnx"
+    PIPER_EXECUTABLE = "piper"  # Should be in PATH after installation
 
-    # currently using the MeloTTS for local models. here is how to get started:
-    # https://github.com/myshell-ai/MeloTTS/blob/main/docs/install.md#linux-and-macos-install
+    # LLM Selection - MATCH YOUR INSTALLED MODEL
+    OLLAMA_LLM="phi3.5:3.0b-mini-instruct-q3_k_m"  # Updated to match your installed model
+    GROQ_LLM="llama3-8b-8192"  # Not used
+    OPENAI_LLM="gpt-4o"  # Not used
 
-    # LLM Selection
-    OLLAMA_LLM="phi3.5:3.8b-mini-instruct-q3_K_M"
-    GROQ_LLM="llama3-8b-8192"
-    OPENAI_LLM="gpt-4o"
+    # Faster-Whisper Configuration - RASPBERRY PI SPEED OPTIMIZED
+    FASTER_WHISPER_MODEL_SIZE = "tiny"   # Use tiny for fastest processing on Pi
+    FASTER_WHISPER_DEVICE = "cpu"        # CPU only on Pi
+    FASTER_WHISPER_COMPUTE_TYPE = "int8" # Keep int8 for speed and memory efficiency
+    FASTER_WHISPER_CPU_THREADS = 2       # Adjust based on Pi model
+    FASTER_WHISPER_NUM_WORKERS = 1       # Single worker for Pi
 
-    # Faster-Whisper Configuration
-    FASTER_WHISPER_MODEL_SIZE = "base"  # Options: tiny, base, small, medium, large-v2, large-v3
-    FASTER_WHISPER_DEVICE = "cpu"       # Options: cpu, cuda (if GPU available)
-    FASTER_WHISPER_COMPUTE_TYPE = "int8"  # Options: int8, int16, float16, float32
-
-    # Wake Word Configuration
+    # Wake Word Configuration - OPTIMIZED FOR RASPBERRY PI SPEED
     WAKE_WORD = "hi windy"
     SLEEP_WORD = "bye windy"
-    WAKE_WORD_TIMEOUT = 5  # Seconds to listen for wake word
-    CONVERSATION_TIMEOUT = 30  # Seconds to wait for user input in conversation
+    WAKE_WORD_TIMEOUT = 3  # Faster timeout for wake word (was 5)
+    CONVERSATION_TIMEOUT = 15  # Shorter conversation timeout for faster response (was 30)
     
-    # Audio settings for wake word detection
-    WAKE_WORD_ENERGY_THRESHOLD = 800  # Lower threshold for wake word sensitivity
-    WAKE_WORD_PAUSE_THRESHOLD = 1.0   # Shorter pause for wake word detection
+    # Audio settings for wake word detection - RASPBERRY PI OPTIMIZED
+    WAKE_WORD_ENERGY_THRESHOLD = 600  # Lower threshold for Pi microphones (was 800)
+    WAKE_WORD_PAUSE_THRESHOLD = 0.8   # Even shorter pause for faster detection (was 1.0)
 
     # API keys and paths
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -76,10 +72,10 @@ class Config:
     WAKE_WORD_ENERGY_THRESHOLD = 800  # Lower threshold for wake word detection
     CONVERSATION_ENERGY_THRESHOLD = 1000  # Normal threshold for conversation
     
-    # Response length configuration (for voice assistant optimization)
-    MAX_RESPONSE_WORDS = 30  # ~20 seconds of speech at normal pace
-    MAX_RESPONSE_TOKENS = 60  # Token limit for LLM generation
-    RESPONSE_TEMPERATURE = 0.7  # Creativity vs consistency balance
+    # Response length configuration - OPTIMIZED FOR SPEED
+    MAX_RESPONSE_WORDS = 15  # Shorter responses for faster speech (was 30)
+    MAX_RESPONSE_TOKENS = 30  # Lower token limit for faster generation (was 60)
+    RESPONSE_TEMPERATURE = 0.3  # Lower temperature for faster, more focused responses (was 0.7)
 
     @staticmethod
     def validate_config():
@@ -90,7 +86,7 @@ class Config:
             ValueError: If a required environment variable is not set.
         """
         Config._validate_model('TRANSCRIPTION_MODEL', [
-            'openai', 'groq', 'deepgram', 'fastwhisperapi', 'faster-whisper', 'local'])
+            'openai', 'groq', 'deepgram', 'faster-whisper', 'local'])
         Config._validate_model('RESPONSE_MODEL', [
             'openai', 'groq', 'ollama', 'local'])
         Config._validate_model('TTS_MODEL', [
