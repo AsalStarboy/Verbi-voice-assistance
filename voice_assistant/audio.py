@@ -56,8 +56,14 @@ def record_audio(file_path, timeout=10, phrase_time_limit=None, retries=3, energ
         try:
             with sr.Microphone() as source:
                 logging.info("Calibrating for ambient noise...")
-                recognizer.adjust_for_ambient_noise(source, duration=calibration_duration)
-                logging.info(f"Energy threshold after calibration: {recognizer.energy_threshold}")
+                try:
+                    recognizer.adjust_for_ambient_noise(source, duration=calibration_duration)
+                    logging.info(f"Energy threshold after calibration: {recognizer.energy_threshold}")
+                except OSError as audio_error:
+                    logging.warning(f"Audio calibration failed: {audio_error}")
+                    # Continue with default energy threshold
+                    recognizer.energy_threshold = energy_threshold
+                
                 logging.info("Recording started - Please speak now!")
                 # Listen for the first phrase and extract it into audio data
                 audio_data = recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
@@ -76,6 +82,11 @@ def record_audio(file_path, timeout=10, phrase_time_limit=None, retries=3, energ
                     raise
         except sr.WaitTimeoutError:
             logging.warning(f"Listening timed out, retrying... ({attempt + 1}/{retries})")
+        except OSError as audio_error:
+            logging.error(f"Audio device error: {audio_error}")
+            if "Invalid number of channels" in str(audio_error) or "ALSA" in str(audio_error):
+                logging.info("Trying with different audio settings...")
+                time.sleep(2)  # Wait before retry
         except Exception as e:
             logging.error(f"Failed to record audio: {e}")
             if attempt == retries -1:
