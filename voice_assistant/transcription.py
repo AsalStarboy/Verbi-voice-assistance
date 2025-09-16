@@ -5,7 +5,22 @@ import logging
 import requests
 import time
 
-from colorama import Fore, init
+# Optional colorama import for colored output
+try:
+    from colorama import Fore, init
+    COLORAMA_AVAILABLE = True
+except ImportError:
+    COLORAMA_AVAILABLE = False
+    # Define dummy Fore class if colorama is not available
+    class Fore:
+        RESET = ""
+        RED = ""
+        GREEN = ""
+        YELLOW = ""
+        BLUE = ""
+        CYAN = ""
+    def init():
+        pass
 
 # Optional imports - only if available
 try:

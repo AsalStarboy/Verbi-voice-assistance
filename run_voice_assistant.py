@@ -3,7 +3,24 @@
 import logging
 import time
 import re
-from colorama import Fore, init
+
+# Optional colorama import for colored output
+try:
+    from colorama import Fore, init
+    COLORAMA_AVAILABLE = True
+except ImportError:
+    COLORAMA_AVAILABLE = False
+    # Define dummy Fore class if colorama is not available
+    class Fore:
+        RESET = ""
+        RED = ""
+        GREEN = ""
+        YELLOW = ""
+        BLUE = ""
+        CYAN = ""
+    def init():
+        pass
+
 from voice_assistant.audio import record_audio, play_audio
 from voice_assistant.transcription import transcribe_audio
 from voice_assistant.response_generation import generate_response
