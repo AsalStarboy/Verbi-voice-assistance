@@ -27,69 +27,142 @@ if [ -n "$USB_CARD" ]; then
     # Create .asoundrc for USB headset
     #!/bin/bash
 
-# Audio setup script for Raspberry Pi with USB headset
+# Enhanced Audio setup script for Raspberry Pi with USB headset
 # Fixes ALSA configuration issues and JACK server problems
 
-echo "Setting up audio configuration for USB headset..."
+echo "🔧 Enhanced Audio Setup for Raspberry Pi"
+echo "========================================"
 
 # Stop any running audio services that might interfere
+echo "🛑 Stopping conflicting audio services..."
 sudo killall -9 jackd 2>/dev/null || true
 sudo killall -9 pulseaudio 2>/dev/null || true
+sudo killall -9 pipewire 2>/dev/null || true
 
-# List available audio devices
-echo "Available audio devices:"
-aplay -l
-arecord -l
-
-# Detect USB audio device
-USB_CARD=$(aplay -l | grep -i "usb\|plantronics\|headset" | head -1 | cut -d: -f1 | cut -d' ' -f2)
-if [ -z "$USB_CARD" ]; then
-    echo "No USB audio device found, using card 1 as default"
-    USB_CARD=1
-else
-    echo "Found USB audio device at card $USB_CARD"
+# Check if user is in audio group
+if ! groups $USER | grep -q audio; then
+    echo "👤 Adding user to audio group..."
+    sudo usermod -a -G audio $USER
+    echo "⚠️  You may need to log out and back in for group changes to take effect"
 fi
 
-# Create improved ALSA configuration
+# List available audio devices
+echo "🎧 Available audio devices:"
+echo "Playback devices:"
+aplay -l 2>/dev/null || echo "❌ No playback devices found"
+echo "Capture devices:"
+arecord -l 2>/dev/null || echo "❌ No capture devices found"
+
+# More comprehensive USB audio device detection
+USB_CARD=""
+USB_DEVICE=""
+
+# Method 1: Check aplay output
+USB_INFO=$(aplay -l 2>/dev/null | grep -i "usb\|plantronics\|headset\|webcam\|microphone" | head -1)
+if [ ! -z "$USB_INFO" ]; then
+    USB_CARD=$(echo "$USB_INFO" | cut -d: -f1 | cut -d' ' -f2)
+    USB_DEVICE=$(echo "$USB_INFO" | cut -d: -f2 | cut -d',' -f1 | xargs)
+fi
+
+# Method 2: Check /proc/asound/cards if Method 1 fails
+if [ -z "$USB_CARD" ]; then
+    USB_CARD=$(cat /proc/asound/cards 2>/dev/null | grep -i "usb\|headset\|webcam" | head -1 | cut -d' ' -f2)
+fi
+
+# Method 3: Default fallback
+if [ -z "$USB_CARD" ]; then
+    echo "⚠️  No specific USB audio device found, trying card 1 as default"
+    USB_CARD=1
+    USB_DEVICE="Default USB Audio"
+else
+    echo "✅ Found USB audio device: Card $USB_CARD - $USB_DEVICE"
+fi
+
+# Create comprehensive ALSA configuration
+echo "📝 Creating ALSA configuration..."
+
+# Backup existing configuration
+if [ -f /home/pi/.asoundrc ]; then
+    cp /home/pi/.asoundrc /home/pi/.asoundrc.backup.$(date +%s)
+    echo "💾 Backed up existing .asoundrc"
+fi
+
+# Create the main ALSA configuration
 sudo tee /home/pi/.asoundrc << EOF
-# Default ALSA configuration for USB headset
+# Enhanced ALSA configuration for USB headset - Raspberry Pi optimized
+# Generated on $(date)
+
+# Set default card
 defaults.pcm.card $USB_CARD
 defaults.ctl.card $USB_CARD
 
+# Main default PCM device with error handling
 pcm.!default {
     type asym
-    playback.pcm "playback"
-    capture.pcm "capture"
+    playback.pcm "playback_fixed"
+    capture.pcm "capture_fixed"
 }
 
-pcm.playback {
+# Robust playback configuration
+pcm.playback_fixed {
     type plug
     slave {
         pcm "hw:$USB_CARD,0"
         rate 16000
         channels 1
         format S16_LE
+        period_time 125000
+        buffer_time 500000
+    }
+    hint {
+        show on
+        description "USB Audio Playback"
     }
 }
 
-pcm.capture {
+# Robust capture configuration
+pcm.capture_fixed {
     type plug
     slave {
         pcm "hw:$USB_CARD,0"
         rate 16000
         channels 1
         format S16_LE
+        period_time 125000
+        buffer_time 500000
+    }
+    hint {
+        show on
+        description "USB Audio Capture"
     }
 }
 
+# Control interface
 ctl.!default {
     type hw
     card $USB_CARD
 }
 
-# Disable JACK audio server
+# Disable problematic audio systems
 pcm.jack {
     type null
+}
+
+pcm.pulse {
+    type null
+}
+
+# Alternative configurations for fallback
+pcm.usb_direct {
+    type hw
+    card $USB_CARD
+    device 0
+}
+
+pcm.usb_plughw {
+    type plughw
+    card $USB_CARD
+    device 0
 }
 EOF
 

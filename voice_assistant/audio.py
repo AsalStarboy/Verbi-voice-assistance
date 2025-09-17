@@ -21,7 +21,7 @@ def get_recognizer():
 
 def record_audio(file_path, timeout=15, phrase_time_limit=10, retries=3, energy_threshold=1000, 
                  pause_threshold=1.5, phrase_threshold=0.1, dynamic_energy_threshold=True, 
-                 calibration_duration=1, wake_word_mode=False):
+                 calibration_duration=1, wake_word_mode=False, use_fallback=True):
     """
     Record audio from the microphone and save it as a WAV file.
     
@@ -111,7 +111,117 @@ def record_audio(file_path, timeout=15, phrase_time_limit=10, retries=3, energy_
                 logging.error("🚨 All recording attempts failed!")
                 raise
         
-    logging.error("Recording failed after all retries")
+    logging.error("🚨 Speech Recognition recording failed after all retries")
+    
+    # Try alternative recording methods if fallback is enabled
+    if use_fallback:
+        logging.info("🔄 Trying alternative recording methods...")
+        
+        # Method 1: Direct arecord command
+        if _record_with_arecord(file_path, phrase_time_limit):
+            return
+            
+        # Method 2: sox recording (if available)
+        if _record_with_sox(file_path, phrase_time_limit):
+            return
+            
+        # Method 3: Manual recording prompt
+        if _manual_recording_prompt(file_path):
+            return
+    
+    logging.error("❌ All recording methods failed")
+    raise Exception("All audio recording methods failed")
+
+def _record_with_arecord(file_path, duration=10):
+    """Fallback recording using arecord command directly"""
+    try:
+        import subprocess
+        import os
+        
+        logging.info("🎤 Trying direct arecord recording...")
+        logging.info(f"🎙️ Recording for {duration} seconds - Please speak now!")
+        
+        # Use arecord directly with specific parameters
+        cmd = [
+            "arecord",
+            "-f", "cd",  # CD quality (16-bit, 44.1kHz, stereo)
+            "-t", "wav",
+            "-d", str(duration),
+            file_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=duration+5)
+        
+        if result.returncode == 0 and os.path.exists(file_path) and os.path.getsize(file_path) > 1000:
+            logging.info("✅ arecord recording successful")
+            return True
+        else:
+            logging.warning(f"⚠️ arecord failed: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        logging.warning(f"⚠️ arecord recording failed: {e}")
+        return False
+
+def _record_with_sox(file_path, duration=10):
+    """Fallback recording using sox (if available)"""
+    try:
+        import subprocess
+        import os
+        
+        logging.info("🎤 Trying sox recording...")
+        logging.info(f"🎙️ Recording for {duration} seconds - Please speak now!")
+        
+        # Use sox for recording
+        cmd = [
+            "sox", "-d", file_path,
+            "trim", "0", str(duration),
+            "rate", "16000",
+            "channels", "1"
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=duration+5)
+        
+        if result.returncode == 0 and os.path.exists(file_path) and os.path.getsize(file_path) > 1000:
+            logging.info("✅ sox recording successful")
+            return True
+        else:
+            logging.warning(f"⚠️ sox not available or failed: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        logging.warning(f"⚠️ sox recording failed: {e}")
+        return False
+
+def _manual_recording_prompt(file_path):
+    """Prompt user to manually record audio"""
+    try:
+        import os
+        import time
+        
+        logging.info("🎤 Manual recording mode - Use another device to record")
+        logging.info("📝 Instructions:")
+        logging.info("   1. Use another device/app to record your voice")
+        logging.info("   2. Save as WAV file and copy to this location:")
+        logging.info(f"   3. File path: {os.path.abspath(file_path)}")
+        logging.info("   4. Press Enter when file is ready (or Ctrl+C to skip)")
+        
+        # Wait for user to place the file
+        input("⏳ Press Enter when audio file is ready...")
+        
+        if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
+            logging.info("✅ Manual audio file detected")
+            return True
+        else:
+            logging.warning("⚠️ No valid audio file found")
+            return False
+            
+    except KeyboardInterrupt:
+        logging.info("⏭️ Manual recording skipped")
+        return False
+    except Exception as e:
+        logging.warning(f"⚠️ Manual recording prompt failed: {e}")
+        return False
 
 def play_audio(file_path):
     """
