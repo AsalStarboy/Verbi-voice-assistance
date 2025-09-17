@@ -175,10 +175,13 @@ def active_conversation():
     while True:
         try:
             # Record audio from the microphone with conversation settings
+            logging.info("🎯 Starting conversation recording...")
             record_audio(Config.INPUT_AUDIO, wake_word_mode=False)
 
             # Transcribe the audio file
+            logging.info("🔄 Starting transcription...")
             user_input = transcribe_audio(Config.TRANSCRIPTION_MODEL, None, Config.INPUT_AUDIO, Config.LOCAL_MODEL_PATH)
+            logging.info("✅ Transcription complete")
 
             # Check if the transcription is empty and restart the recording if it is
             if not user_input:
@@ -210,7 +213,9 @@ def active_conversation():
             chat_history.append({"role": "user", "content": user_input})
             
             # Generate a response
+            logging.info("🤖 Generating response...")
             response_text = generate_response(Config.RESPONSE_MODEL, None, chat_history, Config.LOCAL_MODEL_PATH)
+            logging.info("✅ Response generated")
             logging.info(Fore.CYAN + "Windy: " + response_text + Fore.RESET)
 
             # Append the assistant's response to the chat history
@@ -223,11 +228,15 @@ def active_conversation():
                 output_file = 'output.wav'
 
             # Convert the response text to speech
+            logging.info("🗣️ Converting to speech...")
             text_to_speech(Config.TTS_MODEL, None, response_text, output_file, Config.LOCAL_MODEL_PATH)
+            logging.info("✅ Speech conversion complete")
 
             # Play the generated speech audio
+            logging.info("🔊 Playing response...")
             if Config.TTS_MODEL != "cartesia":
                 play_audio(output_file)
+            logging.info("✅ Playback complete")
             
             # Clean up audio files for this conversation turn
             delete_file(Config.INPUT_AUDIO)

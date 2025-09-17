@@ -19,9 +19,9 @@ def get_recognizer():
     """
     return sr.Recognizer()
 
-def record_audio(file_path, timeout=10, phrase_time_limit=None, retries=3, energy_threshold=1000, 
+def record_audio(file_path, timeout=15, phrase_time_limit=10, retries=3, energy_threshold=1000, 
                  pause_threshold=1.5, phrase_threshold=0.1, dynamic_energy_threshold=True, 
-                 calibration_duration=2, wake_word_mode=False):
+                 calibration_duration=1, wake_word_mode=False):
     """
     Record audio from the microphone and save it as a WAV file.
     
@@ -41,10 +41,18 @@ def record_audio(file_path, timeout=10, phrase_time_limit=None, retries=3, energ
     # Adjust settings for wake word mode
     if wake_word_mode:
         from voice_assistant.config import Config
-        energy_threshold = getattr(Config, 'WAKE_WORD_ENERGY_THRESHOLD', 800)
-        pause_threshold = getattr(Config, 'WAKE_WORD_PAUSE_THRESHOLD', 1.0)
-        timeout = getattr(Config, 'WAKE_WORD_TIMEOUT', 5)
-        phrase_time_limit = 3  # Shorter phrase limit for wake words
+        energy_threshold = getattr(Config, 'WAKE_WORD_ENERGY_THRESHOLD', 600)
+        pause_threshold = getattr(Config, 'WAKE_WORD_PAUSE_THRESHOLD', 0.8)
+        timeout = 10  # Reasonable timeout for wake word
+        phrase_time_limit = 5  # Max time for wake word phrase
+        logging.info("🎤 Recording in WAKE WORD mode...")
+    else:
+        # Conversation mode - more generous timeouts
+        timeout = 15  # More time to start speaking
+        phrase_time_limit = 10  # More time for longer responses
+        energy_threshold = 800  # Slightly lower for conversation
+        pause_threshold = 2.0  # Longer pause for end of sentence
+        logging.info("🎤 Recording in CONVERSATION mode...")
         
     recognizer = get_recognizer()
     recognizer.energy_threshold = energy_threshold
@@ -64,10 +72,14 @@ def record_audio(file_path, timeout=10, phrase_time_limit=None, retries=3, energ
                     # Continue with default energy threshold
                     recognizer.energy_threshold = energy_threshold
                 
-                logging.info("Recording started - Please speak now!")
+                logging.info(f"🎙️ Recording started - Please speak now! (timeout: {timeout}s, phrase_limit: {phrase_time_limit}s)")
+                
                 # Listen for the first phrase and extract it into audio data
+                start_time = time.time()
                 audio_data = recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
-                logging.info("Recording complete")
+                record_duration = time.time() - start_time
+                
+                logging.info(f"✅ Recording complete in {record_duration:.2f} seconds")
 
                 # Save the recorded audio data as WAV file
                 wav_data = audio_data.get_wav_data()
@@ -81,15 +93,22 @@ def record_audio(file_path, timeout=10, phrase_time_limit=None, retries=3, energ
                     logging.error(f"Failed to save audio file: {save_error}")
                     raise
         except sr.WaitTimeoutError:
-            logging.warning(f"Listening timed out, retrying... ({attempt + 1}/{retries})")
+            if wake_word_mode:
+                # For wake word mode, timeout is expected - just retry
+                logging.debug(f"⏰ Wake word listening timed out, retrying... ({attempt + 1}/{retries})")
+            else:
+                # For conversation mode, timeout might indicate a problem
+                logging.warning(f"⏰ Conversation listening timed out, retrying... ({attempt + 1}/{retries})")
+                logging.info("💡 Try speaking louder or closer to the microphone")
         except OSError as audio_error:
-            logging.error(f"Audio device error: {audio_error}")
+            logging.error(f"🔧 Audio device error: {audio_error}")
             if "Invalid number of channels" in str(audio_error) or "ALSA" in str(audio_error):
-                logging.info("Trying with different audio settings...")
-                time.sleep(2)  # Wait before retry
+                logging.info("🔄 Trying with different audio settings...")
+                time.sleep(1)  # Brief wait before retry
         except Exception as e:
-            logging.error(f"Failed to record audio: {e}")
-            if attempt == retries -1:
+            logging.error(f"❌ Failed to record audio: {e}")
+            if attempt == retries - 1:
+                logging.error("🚨 All recording attempts failed!")
                 raise
         
     logging.error("Recording failed after all retries")
